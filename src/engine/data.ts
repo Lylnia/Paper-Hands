@@ -56,7 +56,7 @@ const MOCK_COMPETITORS: Competitor[] = [
     { id: 'c4', name: 'SafeMoon', rank: 900, marketCap: 10_000_000, priceChange24h: -5.0 },
 ];
 
-export function createScenario(type: ScenarioType, seed: number): { project: ProjectState, market: MarketState } {
+export function createScenario(type: ScenarioType, _seed: number): { project: ProjectState, market: MarketState } {
     const project = JSON.parse(JSON.stringify(BASE_PROJECT)); // Deep clone
     project.scenario = type;
 

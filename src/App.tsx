@@ -1,5 +1,4 @@
 // src/App.tsx
-import { useState } from 'react';
 import { useStore } from './store';
 import { Dashboard } from './ui/Dashboard';
 import { ScenarioType } from './engine/types';
