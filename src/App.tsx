@@ -11,31 +11,41 @@ function App() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-background text-white font-sans p-4">
-            <header className="flex justify-between items-center mb-6 border-b border-muted pb-4">
-                <h1 className="text-2xl font-bold tracking-tight text-white">PAPER HANDS <span className="text-xs font-normal text-muted">v0.1</span></h1>
+        <div className="min-h-screen font-mono text-lg p-2 md:p-6 text-[#e0e0e0] flex flex-col max-w-[1600px] mx-auto">
+            <header className="flex flex-col md:flex-row justify-between items-center mb-6 border-b-2 border-[#333] pb-4 gap-4">
+                <div>
+                    <h1 className="text-4xl md:text-6xl font-bold tracking-widest text-primary pixel-text-shadow leading-none">
+                        PAPER HANDS
+                    </h1>
+                    <div className="text-muted text-sm tracking-widest uppercase mt-1">
+                        Crypto CEO Simulator v1.0
+                    </div>
+                </div>
 
-                <div className="flex gap-4">
-                    <div className="flex items-center gap-2">
-                        <span className={`w-3 h-3 rounded-full ${isRunning ? 'bg-success animate-pulse' : 'bg-danger'}`}></span>
-                        <span className="text-sm text-muted">{isRunning ? 'LIVE' : 'PAUSED'}</span>
+                <div className="flex gap-4 items-center pixel-card !p-2 !border-primary/30">
+                    <div className="flex items-center gap-3 px-2">
+                        <div className={`w-4 h-4 border-2 border-current ${isRunning ? 'bg-primary animate-pulse text-primary' : 'bg-red-900 text-red-500'}`}></div>
+                        <span className="text-xl uppercase tracking-widest">{isRunning ? 'LIVE' : 'PAUSED'}</span>
                     </div>
 
                     <button
                         onClick={isRunning ? stopGame : startGame}
-                        className={`px-4 py-1 rounded text-sm font-medium ${isRunning ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-success/20 text-success hover:bg-success/30'}`}
+                        className={`pixel-btn ${isRunning ? 'pixel-btn-danger' : 'pixel-btn-primary'} text-lg min-w-[120px]`}
                     >
-                        {isRunning ? 'PAUSE' : 'RESUME'}
+                        {isRunning ? 'HALT' : 'RESUME'}
                     </button>
                 </div>
             </header>
 
             {!gameState ? (
-                <div className="flex justify-center items-center h-[50vh]">
-                    <p className="text-muted animate-pulse">Initializing Engine...</p>
+                <div className="flex-1 flex flex-col justify-center items-center gap-4">
+                    <div className="text-4xl animate-pulse text-primary">INITIALIZING SYSTEM...</div>
+                    <div className="w-64 h-8 border-2 border-[#333] p-1">
+                        <div className="h-full bg-primary animate-[width_2s_ease-in-out_infinite]" style={{ width: '60%' }}></div>
+                    </div>
                 </div>
             ) : (
-                <main>
+                <main className="flex-1">
                     <Dashboard state={gameState} />
                 </main>
             )}

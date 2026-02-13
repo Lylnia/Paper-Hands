@@ -8,9 +8,10 @@ interface ChartProps {
     width: number;
     height: number;
     color?: string;
+    label?: string;
 }
 
-export function Chart({ data, width, height, color = '#3b82f6' }: ChartProps) {
+export function Chart({ data, width, height, color = '#33ff00', label }: ChartProps) {
     const chartRef = useRef<HTMLDivElement>(null);
     const uPlotRef = useRef<uPlot | null>(null);
 
@@ -25,15 +26,23 @@ export function Chart({ data, width, height, color = '#3b82f6' }: ChartProps) {
                 {
                     stroke: color,
                     width: 2,
-                    fill: color + '33', // 20% opacity
+                    fill: color + '22', // Low opacity fill
+                    points: { show: false } // No points, just line
                 },
             ],
             axes: [
-                { grid: { show: false }, ticks: { show: false } },
-                { grid: { stroke: '#333', width: 1 }, ticks: { show: false }, size: 0 }
+                { grid: { show: false }, ticks: { show: false }, stroke: '#666', font: '12px "VT323"' },
+                {
+                    grid: { stroke: '#333', width: 1, dash: [4, 4] },
+                    ticks: { show: true, stroke: '#666' },
+                    stroke: '#666',
+                    font: '12px "VT323"',
+                    size: 40
+                }
             ],
             cursor: {
-                show: false
+                show: true,
+                points: { size: 6, fill: color }
             },
             legend: {
                 show: false
@@ -43,10 +52,15 @@ export function Chart({ data, width, height, color = '#3b82f6' }: ChartProps) {
         const u = new uPlot(opts, data, chartRef.current);
         uPlotRef.current = u;
 
+        // Custom CRT flicker effect on the chart container
+        if (chartRef.current) {
+            chartRef.current.style.filter = "contrast(1.2) brightness(1.1)";
+        }
+
         return () => {
             u.destroy();
         };
-    }, []); // Init once
+    }, []);
 
     useEffect(() => {
         if (uPlotRef.current) {
@@ -54,5 +68,10 @@ export function Chart({ data, width, height, color = '#3b82f6' }: ChartProps) {
         }
     }, [data]);
 
-    return <div ref={chartRef} />;
+    return (
+        <div className="relative">
+            {label && <div className="absolute top-2 left-2 text-primary text-xs uppercase z-10 bg-black/50 px-1 border border-primary">{label}</div>}
+            <div ref={chartRef} className="opacity-90 mix-blend-screen" />
+        </div>
+    );
 }

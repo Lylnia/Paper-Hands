@@ -5,15 +5,20 @@ export default {
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
     theme: {
+        fontFamily: {
+            mono: ['"VT323"', 'monospace'],
+            sans: ['"VT323"', 'monospace'],
+        },
         extend: {
             colors: {
                 background: '#0d0d0d',
-                surface: '#1a1a1a',
-                primary: '#3b82f6',
-                success: '#22c55e',
-                danger: '#ef4444',
-                warning: '#f59e0b',
-                muted: '#525252'
+                surface: '#151515',
+                primary: '#33ff00',
+                'primary-dim': '#1a8000',
+                success: '#33ff00',
+                danger: '#ff0033',
+                warning: '#ffee00',
+                muted: '#666666'
             }
         },
     },

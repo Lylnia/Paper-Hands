@@ -1,15 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  font-family: 'VT323', monospace;
+  line-height: 1.2;
   font-weight: 400;
-  
+
+  --color-bg: #111111;
+  --color-scanline: rgba(18, 16, 16, 0.5);
+  --color-primary: #33ff00;
+  --color-primary-dim: #1a8000;
+  --color-danger: #ff0033;
+  --color-danger-dim: #80001a;
+  --color-warning: #ffee00;
+  --color-text: #e0e0e0;
+
   color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0d0d0d;
+  color: var(--color-text);
+  background-color: var(--color-bg);
 }
 
 body {
@@ -18,9 +29,86 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #050505;
+  background-image:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 2px, 3px 100%;
+}
+
+/* CRT Scanline Effect */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: repeating-linear-gradient(0deg,
+      rgba(0, 0, 0, 0.15),
+      rgba(0, 0, 0, 0.15) 1px,
+      transparent 1px,
+      transparent 2px);
+  pointer-events: none;
+  z-index: 9999;
 }
 
 #root {
   width: 100%;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #33ff00;
+  border: 2px solid #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #55ff22;
+}
+
+/* Pixel Components */
+@layer components {
+  .pixel-card {
+    @apply bg-[#151515] border-2 border-[#333] p-4 relative shadow-[4px_4px_0px_0px_rgba(0, 0, 0, 0.5)];
+  }
+
+  .pixel-card::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+
+  .pixel-btn {
+    @apply px-4 py-2 font-bold uppercase tracking-wide transition-all active:translate-y-1 active:shadow-none border-2;
+  }
+
+  .pixel-btn-primary {
+    @apply bg-[#004400] text-[#33ff00] border-[#33ff00] shadow-[4px_4px_0px_0px_#1a8000] hover:bg-[#005500];
+  }
+
+  .pixel-btn-danger {
+    @apply bg-[#440000] text-[#ff3333] border-[#ff3333] shadow-[4px_4px_0px_0px_#800000] hover:bg-[#550000];
+  }
+
+  .pixel-btn-warning {
+    @apply bg-[#444400] text-[#ffff33] border-[#ffff33] shadow-[4px_4px_0px_0px_#808000] hover:bg-[#555500];
+  }
+
+  .pixel-text-shadow {
+    text-shadow: 2px 2px 0px #000000;
+  }
 }

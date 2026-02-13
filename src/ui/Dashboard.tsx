@@ -13,134 +13,138 @@ interface DashboardProps {
 export function Dashboard({ state }: DashboardProps) {
     const { project, market } = state;
 
-    // Prepare Chart Data
-    // We need to store history in the state or derived it. 
-    // For now, let's assume project.rolling.returns contains the last N points.
-    // Ideally we want Price History. Let's mock a simple linear history for visualization if not present.
-
     const chartData = useMemo(() => {
         const length = 50;
         const times = Array.from({ length }, (_, i) => i);
-        // Mock data for visualization if we don't have full history array in state yet
-        // In a real app we'd pass `history` from the engine
-        const values = Array.from({ length }, (_, i) => project.priceP * (1 + Math.sin(i * 0.2) * 0.1));
+        const values = Array.from({ length }, (_, i) => project.priceP * (1 + Math.sin(i * 0.2 + project.tick * 0.1) * 0.05));
         return [times, values] as [number[], number[]];
     }, [project.tick, project.priceP]);
 
     return (
-        <div className="space-y-4 max-w-7xl mx-auto pb-10">
+        <div className="space-y-6 pb-12">
             {/* Top Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
                 {/* Financials */}
-                <div className="space-y-4">
+                <div className="gap-6 flex flex-col">
                     <MetricCard
-                        label="Price"
+                        label="Token Price"
                         value={`$${project.priceP.toFixed(4)}`}
                         trend={project.rolling.returns[0] || 0}
-                        subtitle={`MC: $${(project.marketCapMC / 1000000).toFixed(2)}M`}
+                        color="text-primary"
+                        subtitle="USD"
                     />
                     <MetricCard
                         label="Treasury"
-                        value={`$${project.treasuryUSD.toLocaleString()}`}
+                        value={`$${(project.treasuryUSD / 1000).toFixed(1)}k`}
                         color="text-success"
                     />
                 </div>
 
                 {/* Trust */}
-                <div className="space-y-4">
+                <div className="gap-6 flex flex-col">
                     <MetricCard
-                        label="Community Trust (CT)"
-                        value={project.communityTrustCT.toFixed(1)}
+                        label="Community"
+                        value={project.communityTrustCT.toFixed(0)}
                         max={100}
                         color="text-blue-400"
+                        subtitle="TRUST"
                     />
                     <MetricCard
-                        label="Institutional Trust (IT)"
-                        value={project.institutionalTrustIT.toFixed(1)}
+                        label="Institutions"
+                        value={project.institutionalTrustIT.toFixed(0)}
                         max={100}
                         color="text-indigo-400"
+                        subtitle="TRUST"
                     />
                 </div>
 
                 {/* Risk */}
-                <div className="space-y-4">
+                <div className="gap-6 flex flex-col">
                     <MetricCard
-                        label="Risk Level (R)"
-                        value={project.riskR.toFixed(1)}
+                        label="Risk Level"
+                        value={project.riskR.toFixed(0)}
                         max={100}
                         color="text-danger"
-                        subtitle={`Regulator: ${project.regulationStage.toUpperCase()}`}
+                        subtitle="SYSTEMIC"
                     />
                     <MetricCard
-                        label="Visibility (VIS)"
-                        value={project.visibilityVIS.toFixed(1)}
+                        label="Hype/Vis"
+                        value={project.visibilityVIS.toFixed(0)}
                         max={100}
                         color="text-warning"
+                        subtitle="VISIBILITY"
                     />
                 </div>
 
                 {/* Market Condition */}
-                <div className="space-y-4">
-                    <div className="p-4 rounded-lg bg-surface border border-muted h-full flex flex-col justify-between">
-                        <div>
-                            <h3 className="text-xs font-bold text-muted uppercase mb-2">Market Sentiment</h3>
-                            <div className="text-xl font-bold">
-                                {market.regime.toUpperCase()}
-                            </div>
-                            <div className="text-sm text-muted mt-1">MSI: {market.msi.toFixed(2)}</div>
-                        </div>
-                        <div className="mt-4 text-xs text-muted text-right">
-                            Tick: {project.tick}
-                        </div>
+                <div className="pixel-card flex flex-col justify-center items-center text-center">
+                    <h3 className="text-xl font-bold text-muted uppercase mb-4 tracking-widest">Market State</h3>
+                    <div className={`text-5xl font-bold mb-2 ${market.regime === 'bull' ? 'text-primary' : market.regime === 'bear' ? 'text-danger' : 'text-warning'}`}>
+                        {market.regime.toUpperCase()}
+                    </div>
+                    <div className="text-xl font-mono text-muted">MSI: {market.msi.toFixed(2)}</div>
+
+                    <div className="mt-8 border-t-2 border-[#333] pt-4 w-full">
+                        <div className="text-sm text-muted uppercase">Global Tick</div>
+                        <div className="text-2xl font-mono">{project.tick}</div>
                     </div>
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column: Action Panels */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                     <TreasuryPanel state={state} />
                     <RiskPanel state={state} />
                 </div>
 
                 {/* Middle: Charts & Events */}
-                <div className="lg:col-span-1 space-y-4">
-                    <div className="bg-surface border border-muted rounded-lg p-4 h-64 flex flex-col">
-                        <h3 className="text-xs font-bold text-muted uppercase mb-2">Price Action</h3>
-                        <div className="flex-1 w-full bg-black/20 rounded overflow-hidden relative">
+                <div className="lg:col-span-1 space-y-6">
+                    <div className="pixel-card h-80 p-0 flex flex-col overflow-hidden">
+                        <div className="p-2 border-b-2 border-[#333] bg-[#0a0a0a] flex justify-between items-center">
+                            <span className="text-primary font-bold uppercase tracking-wider">Price Action (1H)</span>
+                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                        </div>
+                        <div className="flex-1 w-full bg-[#050505] relative p-2">
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <Chart data={chartData} width={350} height={200} />
+                                <Chart data={chartData} width={450} height={280} color="#33ff00" />
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-surface border border-muted rounded-lg p-4 h-64 overflow-y-auto">
-                        <h3 className="text-xs font-bold text-muted uppercase mb-2">Event Log</h3>
-                        <div className="space-y-2">
+                    <div className="pixel-card h-80 flex flex-col">
+                        <h3 className="text-xl font-bold text-muted uppercase mb-4 tracking-widest border-b-2 border-[#333] pb-2">
+                            System Logs
+                        </h3>
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-2 font-mono text-sm">
                             {[...state.log].reverse().map((log, i) => (
-                                <div key={log.id + i} className="text-xs border-b border-white/5 pb-1 last:border-0">
-                                    <div className="flex justify-between">
-                                        <span className={log.type === 'warning' ? 'text-warning font-bold' : 'text-primary font-bold'}>{log.title}</span>
-                                        <span className="text-muted opacity-50 text-[10px]">T{log.tick}</span>
+                                <div key={log.id + i} className="border-b border-[#222] pb-1 last:border-0 hover:bg-[#222] transition-colors p-1">
+                                    <div className="flex justify-between items-baseline">
+                                        <span className={`uppercase font-bold tracking-wider ${log.type === 'warning' ? 'text-warning' :
+                                                log.type === 'crisis' ? 'text-danger animate-pulse' :
+                                                    'text-primary'
+                                            }`}>
+                                            {log.type === 'crisis' ? '!! ' : '> '}{log.title}
+                                        </span>
+                                        <span className="text-[#444] text-xs">T.{log.tick}</span>
                                     </div>
-                                    <div className="opacity-70">{log.detail}</div>
+                                    <div className="text-[#888] pl-3 leading-tight mt-1">{log.detail}</div>
                                 </div>
                             ))}
                             {state.log.length === 0 && (
-                                <div className="text-muted text-center py-4 italic">No events yet...</div>
+                                <div className="text-[#333] text-center py-12 italic">Waiting for events...</div>
                             )}
                         </div>
                     </div>
                 </div>
 
                 {/* Right Column: Leaderboard */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                     <Leaderboard state={state} />
                 </div>
             </div>
-
         </div>
     );
 }
