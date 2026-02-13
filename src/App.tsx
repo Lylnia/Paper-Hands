@@ -1,54 +1,68 @@
 // src/App.tsx
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from './store';
 import { Dashboard } from './ui/Dashboard';
+import { ScenarioType } from './engine/types';
 
 function App() {
-    const { initGame, startGame, stopGame, isRunning, gameState } = useStore();
+    const { initGame, startGame, isRunning, gameState } = useStore();
+    const [selectedScenario, setSelectedScenario] = useState<ScenarioType | null>(null);
 
-    useEffect(() => {
-        initGame();
-    }, []);
+    const handleStart = (scenario: ScenarioType) => {
+        setSelectedScenario(scenario);
+        initGame(scenario);
+        // Wait a bit for worker to init then start
+        setTimeout(() => startGame(), 100);
+    };
 
-    return (
-        <div className="min-h-screen font-mono text-lg p-2 md:p-6 text-[#e0e0e0] flex flex-col max-w-[1600px] mx-auto">
-            <header className="flex flex-col md:flex-row justify-between items-center mb-6 border-b-2 border-[#333] pb-4 gap-4">
-                <div>
-                    <h1 className="text-4xl md:text-6xl font-bold tracking-widest text-primary pixel-text-shadow leading-none">
-                        PAPER HANDS
-                    </h1>
-                    <div className="text-muted text-sm tracking-widest uppercase mt-1">
-                        Crypto CEO Simulator v1.0
-                    </div>
-                </div>
+    if (!gameState) {
+        return (
+            <div className="min-h-screen bg-black text-[#33ff00] font-mono flex flex-col items-center justify-center p-8 relative overflow-hidden">
+                {/* Scanline Overlay */}
+                <div className="fixed inset-0 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
 
-                <div className="flex gap-4 items-center pixel-card !p-2 !border-primary/30">
-                    <div className="flex items-center gap-3 px-2">
-                        <div className={`w-4 h-4 border-2 border-current ${isRunning ? 'bg-primary animate-pulse text-primary' : 'bg-red-900 text-red-500'}`}></div>
-                        <span className="text-xl uppercase tracking-widest">{isRunning ? 'LIVE' : 'PAUSED'}</span>
-                    </div>
+                <h1 className="text-8xl font-bold mb-12 tracking-tighter drop-shadow-[0_0_15px_rgba(51,255,0,0.8)]">PAPER HANDS</h1>
 
-                    <button
-                        onClick={isRunning ? stopGame : startGame}
-                        className={`pixel-btn ${isRunning ? 'pixel-btn-danger' : 'pixel-btn-primary'} text-lg min-w-[120px]`}
-                    >
-                        {isRunning ? 'HALT' : 'RESUME'}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full">
+                    <button onClick={() => handleStart('new_chain')} className="border-4 border-[#33ff00] p-8 hover:bg-[#33ff00]/20 transition-all group text-left relative">
+                        <div className="absolute top-0 right-0 bg-[#33ff00] text-black px-2 font-bold opacity-0 group-hover:opacity-100">Recommended</div>
+                        <h2 className="text-3xl font-bold mb-4">NEW L1 CHAIN</h2>
+                        <p className="text-xl opacity-80 mb-4">Launch a high-tech blockchain. High max supply, low trust.</p>
+                        <ul className="list-disc list-inside opacity-70">
+                            <li>Supply: 1B</li>
+                            <li>Risk: High</li>
+                            <li>Potential: Infinite</li>
+                        </ul>
+                    </button>
+
+                    <button onClick={() => handleStart('existing_token')} className="border-4 border-[#33b5af] text-[#33b5af] p-8 hover:bg-[#33b5af]/20 transition-all text-left">
+                        <h2 className="text-3xl font-bold mb-4">UTILITY TOKEN</h2>
+                        <p className="text-xl opacity-80 mb-4">A standard ERC-20 token with fixed supply.</p>
+                        <ul className="list-disc list-inside opacity-70">
+                            <li>Supply: 100M</li>
+                            <li>Risk: Low</li>
+                            <li>Growth: Steady</li>
+                        </ul>
+                    </button>
+
+                    <button onClick={() => handleStart('dead_project')} className="border-4 border-[#ff0033] text-[#ff0033] p-8 hover:bg-[#ff0033]/20 transition-all text-left">
+                        <h2 className="text-3xl font-bold mb-4">DEAD PROJECT</h2>
+                        <p className="text-xl opacity-80 mb-4">Take over a rugged DAO. Can you revive it?</p>
+                        <ul className="list-disc list-inside opacity-70">
+                            <li>Trust: 0%</li>
+                            <li>Treasury: $50k</li>
+                            <li>Difficulty: HARD</li>
+                        </ul>
                     </button>
                 </div>
-            </header>
+            </div>
+        );
+    }
 
-            {!gameState ? (
-                <div className="flex-1 flex flex-col justify-center items-center gap-4">
-                    <div className="text-4xl animate-pulse text-primary">INITIALIZING SYSTEM...</div>
-                    <div className="w-64 h-8 border-2 border-[#333] p-1">
-                        <div className="h-full bg-primary animate-[width_2s_ease-in-out_infinite]" style={{ width: '60%' }}></div>
-                    </div>
-                </div>
-            ) : (
-                <main className="flex-1">
-                    <Dashboard state={gameState} />
-                </main>
-            )}
+    return (
+        <div className="h-screen w-screen bg-[#050505] text-[#e0e0e0] font-mono overflow-hidden flex flex-col">
+            <div className="fixed inset-0 pointer-events-none z-50 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] opacity-20"></div>
+            <Dashboard state={gameState} />
         </div>
     );
 }

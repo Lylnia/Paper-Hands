@@ -2,97 +2,79 @@
 import { GameState } from '../engine/types';
 import { useStore } from '../store';
 
-interface PanelProps {
-    state: GameState;
-}
-
-export function TreasuryPanel({ state }: PanelProps) {
+export function Panels({ state }: { state: GameState }) {
     const { dispatchAction } = useStore();
     const { project } = state;
 
     return (
-        <div className="pixel-card">
-            <h2 className="text-xl font-bold text-primary uppercase mb-4 tracking-widest border-b-2 border-primary/30 pb-2">
-                <span className="mr-2">💰</span>OPS Center
-            </h2>
-            <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#050505] p-3 border-2 border-[#333]">
-                        <div className="text-sm text-muted uppercase">Runway</div>
-                        <div className="text-2xl text-white">{(project.treasuryUSD / 2000).toFixed(1)} <span className="text-sm text-muted">mo</span></div>
-                    </div>
-                    <div className="bg-[#050505] p-3 border-2 border-[#333]">
-                        <div className="text-sm text-muted uppercase">Dev Wallet</div>
-                        <div className="text-2xl text-white">{(project.teamTokensRemaining / 1_000_000).toFixed(2)}M</div>
-                    </div>
-                </div>
+        <div className="h-full flex gap-4">
 
-                <div className="space-y-4">
-                    <button
+            {/* Market Ops */}
+            <div className="flex-1 border-r-4 border-[#333] pr-4">
+                <h3 className="text-[#33ff00] text-sm font-bold tracking-widest uppercase mb-4">MARKET OPERATIONS</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <PanelButton
+                        label="BUY MARKETING"
+                        cost="$5,000"
+                        desc="+5 Comm. Trust"
+                        disabled={project.treasury < 5000}
                         onClick={() => dispatchAction({ type: 'buy_marketing' })}
-                        disabled={project.treasuryUSD < 5000}
-                        className="w-full pixel-btn pixel-btn-primary disabled:opacity-50 disabled:shadow-none disabled:bg-gray-900 disabled:border-gray-700 disabled:text-gray-500"
-                    >
-                        <div>BUY MARKETING</div>
-                        <div className="text-sm opacity-80">Cost: $5k</div>
-                    </button>
-                    <button
-                        onClick={() => dispatchAction({ type: 'team_sell' })}
-                        className="w-full pixel-btn pixel-btn-danger"
-                    >
-                        <div>MARKET DUMP</div>
-                        <div className="text-sm opacity-80">Sell 1% supply</div>
-                    </button>
+                        color="green"
+                    />
+                    <PanelButton
+                        label="FAKE VOLUME"
+                        cost="$1,000"
+                        desc="+FAKE Vol / +RISK"
+                        disabled={project.treasury < 1000}
+                        onClick={() => dispatchAction({ type: 'buy_fake_volume' })}
+                        color="yellow"
+                    />
+                </div>
+            </div>
+
+            {/* Governance / Risk */}
+            <div className="flex-1 pl-4">
+                <h3 className="text-[#ff0033] text-sm font-bold tracking-widest uppercase mb-4">RISK / GOVERNANCE</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <PanelButton
+                        label="TEAM SELL (1%)"
+                        cost="DUMP"
+                        desc="+$Cash / -Trust / +Risk"
+                        disabled={project.supply.team <= 0}
+                        onClick={() => dispatchAction({ type: 'sell_team_tokens' })}
+                        color="red"
+                    />
+
+                    {/* Placeholder for future actions */}
+                    <div className="border-4 border-[#222] bg-[#111] p-2 flex items-center justify-center text-[#333] text-xs uppercase tracking-widest">
+                        LOCKED
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
 
-export function RiskPanel({ state }: PanelProps) {
-    const { dispatchAction } = useStore();
-    const { project } = state;
+function PanelButton({ label, cost, desc, disabled, onClick, color }: any) {
+    const borderClass = color === 'green' ? 'border-[#33ff00]' : color === 'red' ? 'border-[#ff0033]' : 'border-yellow-500';
+    const textClass = color === 'green' ? 'text-[#33ff00]' : color === 'red' ? 'text-[#ff0033]' : 'text-yellow-500';
+    const bgHover = color === 'green' ? 'hover:bg-[#33ff00]/20' : color === 'red' ? 'hover:bg-[#ff0033]/20' : 'hover:bg-yellow-500/20';
 
     return (
-        <div className="pixel-card">
-            <h2 className="text-xl font-bold text-danger uppercase mb-4 tracking-widest border-b-2 border-danger/30 pb-2">
-                <span className="mr-2">⚠️</span>Risk Mgmt
-            </h2>
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            className={`
+                border-4 ${borderClass} bg-transparent p-2 text-left relative group transition-all
+                disabled:opacity-30 disabled:cursor-not-allowed
+                ${bgHover}
+            `}
+        >
+            <div className={`font-bold text-lg leading-none mb-1 ${textClass}`}>{label}</div>
+            <div className="text-xs text-[#888]">{cost}</div>
 
-            <div className="mb-6">
-                <label className="text-sm text-muted block mb-2 uppercase tracking-wider">Fake Volume Share</label>
-                <div className="w-full bg-[#000] h-6 border-2 border-[#333] relative">
-                    {/* Striped warning pattern for high values */}
-                    <div className="h-full bg-purple-600 transition-all duration-300"
-                        style={{
-                            width: `${project.rolling.fakeShare * 100}%`,
-                            backgroundImage: 'linear-gradient(45deg,rgba(0,0,0,.15) 25%,transparent 25%,transparent 50%,rgba(0,0,0,.15) 50%,rgba(0,0,0,.15) 75%,transparent 75%,transparent)',
-                            backgroundSize: '10px 10px'
-                        }}>
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white shadow-black drop-shadow-md">
-                        {(project.rolling.fakeShare * 100).toFixed(0)}%
-                    </div>
-                </div>
-            </div>
-
-            <div className="space-y-4">
-                <button
-                    onClick={() => dispatchAction({ type: 'wash_trade' })}
-                    disabled={project.treasuryUSD < 1000}
-                    className="w-full pixel-btn pixel-btn-warning text-black"
-                >
-                    <div>WASH TRADE</div>
-                    <div className="text-sm opacity-80">Cost: $1k</div>
-                </button>
-            </div>
-
-            {project.regulationStage !== 'normal' && (
-                <div className="mt-6 p-4 bg-red-900/40 border-2 border-red-500 text-red-400 text-sm font-bold uppercase animate-pulse text-center">
-                    !!! REGULATOR WATCH !!!
-                    <div className="text-xs mt-1 text-red-300">Stage: {project.regulationStage}</div>
-                </div>
-            )}
-        </div>
+            {/* Tooltip-like effect always visible in this design for clarity */}
+            <div className="text-[10px] text-[#666] uppercase mt-1">{desc}</div>
+        </button>
     );
 }

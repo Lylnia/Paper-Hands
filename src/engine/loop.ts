@@ -1,115 +1,92 @@
 // src/engine/loop.ts
-import { GameAction, GameState } from './types';
+import { GameState, GameAction, LogEntry } from './types';
+import { calculateNetFlow, updatePrice, updateRisk, updateTrust } from './math';
 import { RNG } from './rng';
-import { calculateNetFlow, updatePrice, calculateEffectiveLiquidity, calculateVolatilityPressure, updateRollingMetrics } from './math';
-import { updateTrust, updateRisk } from './dynamics';
 
-export function step(
-    state: GameState,
-    actions: GameAction[]
-): GameState {
-    // Clone state effectively (simple JSON parse/stringify for now, or spread)
-    // In a real worker loop we might optimize this, but for clarity:
-    const nextProject = { ...state.project, rolling: { ...state.project.rolling }, flags: { ...state.project.flags }, cooldowns: { ...state.project.cooldowns } };
-    const nextMarket = { ...state.market };
-    const nextLog = [...state.log];
+export function step(state: GameState, actions: GameAction[]): GameState {
+    const { project, market, config } = state;
     const rng = new RNG(state.rngState);
+    const log: LogEntry[] = [...state.log];
 
     // 1. Process Actions
-    let actionNetFlow = 0;
-    let riskJump = 0;
+    let actionVolume = 0;
 
-    for (const action of actions) {
-        // Basic handler
+    actions.forEach(action => {
         switch (action.type) {
-            case 'team_sell':
-                // Sell 1% of team tokens
-                const sellAmount = nextProject.teamTokensRemaining * 0.01;
-                nextProject.teamTokensRemaining -= sellAmount;
-                // Selling adds supply to circulation (if not already)
-                // Actually, typically team tokens are locked. If unlocked, they enter circ.
-                nextProject.s_circ += sellAmount;
-
-                // Creates sell pressure
-                actionNetFlow -= (sellAmount * nextProject.priceP);
-
-                // Adds Risk
-                riskJump += 5;
-
-                nextLog.push({
-                    id: crypto.randomUUID(),
-                    tick: nextProject.tick,
-                    type: 'warning',
-                    title: 'Team Sell',
-                    detail: `Sold ${sellAmount.toFixed(0)} tokens.`
-                });
+            case 'buy_marketing':
+                if (project.treasury >= 5000) {
+                    project.treasury -= 5000;
+                    project.communityTrust = Math.min(100, project.communityTrust + 5);
+                    log.push({ id: crypto.randomUUID(), tick: project.tick, type: 'success', message: 'Marketing Campaign Launched' });
+                }
                 break;
-
-            case 'wash_trade':
-                // Spend treasury to boost volume
-                const cost = 1000;
-                if (nextProject.treasuryUSD >= cost) {
-                    nextProject.treasuryUSD -= cost;
-                    nextProject.volumeV += cost * 5; // Fake volume multiplier
-                    nextProject.rolling.fakeShare = Math.min(1, nextProject.rolling.fakeShare + 0.1);
-                    riskJump += 2; // accumulating risk
+            case 'buy_fake_volume':
+                if (project.treasury >= 1000) {
+                    project.treasury -= 1000;
+                    project.volume.fake += 50_000; // Boost fake volume
+                    log.push({ id: crypto.randomUUID(), tick: project.tick, type: 'warning', message: 'Bot Farm Activated' });
+                }
+                break;
+            case 'sell_team_tokens':
+                const sellAmount = project.supply.team * 0.01; // 1%
+                if (sellAmount > 0) {
+                    project.supply.team -= sellAmount;
+                    project.supply.circulating += sellAmount;
+                    project.treasury += sellAmount * project.price;
+                    project.communityTrust -= 10; // Penalty
+                    log.push({ id: crypto.randomUUID(), tick: project.tick, type: 'danger', message: 'Team Dump Executed' });
                 }
                 break;
         }
+    });
+
+    // 2. Market Physics
+    const netFlow = calculateNetFlow(project, market, rng);
+    const oldPrice = project.price;
+    project.price = updatePrice(project.price, netFlow, project.liquidity.amount, config);
+    const priceChangePct = (project.price - oldPrice) / oldPrice;
+
+    project.marketCap = project.price * project.supply.circulating;
+
+    // Volume Decay
+    project.volume.fake *= 0.9; // Decay fake volume fast
+    project.volume.real = (project.volume.real * 0.95) + (Math.abs(netFlow) * 0.1);
+    project.volume.total = project.volume.real + project.volume.fake;
+    project.volume.history = [...project.volume.history, project.volume.total].slice(-50);
+
+    // 3. Trust & Risk
+    const trustUpdates = updateTrust(project, market, priceChangePct, config);
+    project.communityTrust = trustUpdates.ct;
+    project.institutionalTrust = trustUpdates.it;
+
+    // Risk update (now checks fake volume ratio inside)
+    const riskChange = updateRisk(project, config);
+    // We apply the change relative to current, math.ts returned absolute target?
+    // Let's adjust math.ts or just set it:
+    // Actually math.ts logic was: return NEW risk.
+    project.risk = riskChange;
+
+    // 4. Events / Regulation
+    // SEC Investigation Check
+    if (project.risk > 75 && !project.flags.isSECInvestigated) {
+        if (rng.bool(0.01)) { // 1% chance per tick if risk is high
+            project.flags.isSECInvestigated = true;
+            log.push({ id: crypto.randomUUID(), tick: project.tick, type: 'danger', message: 'SEC Investigation Opened!' });
+        }
     }
 
-    // 2. Core Physics
-    const l_eff = calculateEffectiveLiquidity(nextProject.liquidityL, nextProject.institutionalTrustIT, nextProject.liquidityLockedPct, 1.0);
-
-    const { netFlow: organicNetFlow, organicVolume } = calculateNetFlow(nextProject, nextMarket);
-
-    const totalNetFlow = organicNetFlow + actionNetFlow;
-
-    // Update Price
-    const previousPrice = nextProject.priceP;
-    const newPrice = updatePrice(previousPrice, totalNetFlow, l_eff, nextProject, nextMarket, rng, state.config);
-    nextProject.priceP = newPrice;
-    nextProject.marketCapMC = newPrice * nextProject.s_circ;
-
-    // Update Volume (simplified decay toward organic)
-    nextProject.volumeV = nextProject.volumeV * 0.9 + organicVolume * 0.1;
-
-    // 3. Dynamics
-    const returnPct = (newPrice - previousPrice) / previousPrice;
-    nextProject.rolling = updateRollingMetrics(nextProject.rolling, returnPct, state.config);
-    const vp = calculateVolatilityPressure(nextProject, nextMarket);
-
-    // Trust
-    const { ct, it } = updateTrust(nextProject, nextMarket, vp, state.config);
-    nextProject.communityTrustCT = ct;
-    nextProject.institutionalTrustIT = it;
-
-    // Risk
-    const currentRisk = updateRisk(nextProject, nextMarket, vp, state.config);
-    nextProject.riskR = Math.min(100, currentRisk + riskJump);
-
-    // Visibility (derived)
-    // VIS = log(Volume) + log(MC) basically
-    nextProject.visibilityVIS = Math.min(100, (Math.log10(nextProject.volumeV + 1) * 10) + (Math.log10(nextProject.marketCapMC + 1) * 5)) / 2;
-
-    // 4. Events / Triggers
-    // Check for Ranking #1
-    // (Placeholder)
-
-    // Delisting Check (if risk too high)
-    if (nextProject.riskR > 90 && !nextProject.flags.isDelistedEverywhere) {
-        // Trigger warning or delist
+    // Delisting Check
+    if (project.risk > 90) {
+        if (rng.bool(0.05)) {
+            project.flags.isDelisted = true;
+            log.push({ id: crypto.randomUUID(), tick: project.tick, type: 'danger', message: 'CEX Delisting Notice!' });
+        }
     }
 
     // 5. Cleanup
-    nextProject.tick += 1;
-    const nextRngState = rng.getState();
+    project.tick++;
+    state.rngState = rng.getState();
+    state.log = log.slice(-20); // Keep last 20 logs
 
-    return {
-        project: nextProject,
-        market: nextMarket,
-        log: nextLog.slice(-50), // Keep last 50 logs
-        config: state.config,
-        rngState: nextRngState
-    };
+    return { ...state };
 }

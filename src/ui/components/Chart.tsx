@@ -1,48 +1,53 @@
 // src/ui/components/Chart.tsx
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import uPlot from 'uplot';
 import 'uplot/dist/uPlot.min.css';
+import { GameState } from '../../engine/types';
 
-interface ChartProps {
-    data: [number[], number[]]; // [timestamps, values]
-    width: number;
-    height: number;
-    color?: string;
-    label?: string;
-}
-
-export function Chart({ data, width, height, color = '#33ff00', label }: ChartProps) {
+export function Chart({ state }: { state: GameState }) {
     const chartRef = useRef<HTMLDivElement>(null);
     const uPlotRef = useRef<uPlot | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Generate data from state
+    const data = useMemo(() => {
+        // If we don't have real price history array in state yet, mock it based on tick
+        // For MVP we just show a rolling window of recent volume or random walk
+        // Let's create a stable random walk based on tick for visualization if history is missing
+        const length = 60;
+        const times = Array.from({ length }, (_, i) => state.project.tick - length + i);
+        // Mock viz: sine wave modulated by price
+        const values = times.map(t => state.project.price * (1 + Math.sin(t * 0.2) * 0.05));
+
+        return [times, values] as [number[], number[]];
+    }, [state.project.tick, state.project.price]);
 
     useEffect(() => {
-        if (!chartRef.current) return;
+        if (!chartRef.current || !containerRef.current) return;
+
+        const { width, height } = containerRef.current.getBoundingClientRect();
 
         const opts: uPlot.Options = {
-            width,
-            height,
+            width: width - 4, // account for borders
+            height: height - 4,
             series: [
                 {},
                 {
-                    stroke: color,
+                    stroke: '#33ff00',
                     width: 2,
-                    fill: color + '22', // Low opacity fill
-                    points: { show: false } // No points, just line
+                    fill: 'rgba(51, 255, 0, 0.1)',
                 },
             ],
             axes: [
-                { grid: { show: false }, ticks: { show: false }, stroke: '#666', font: '12px "VT323"' },
+                { grid: { show: false }, ticks: { show: false } },
                 {
                     grid: { stroke: '#333', width: 1, dash: [4, 4] },
-                    ticks: { show: true, stroke: '#666' },
-                    stroke: '#666',
-                    font: '12px "VT323"',
-                    size: 40
+                    ticks: { show: false },
+                    points: { show: false }
                 }
             ],
             cursor: {
-                show: true,
-                points: { size: 6, fill: color }
+                show: false
             },
             legend: {
                 show: false
@@ -51,11 +56,6 @@ export function Chart({ data, width, height, color = '#33ff00', label }: ChartPr
 
         const u = new uPlot(opts, data, chartRef.current);
         uPlotRef.current = u;
-
-        // Custom CRT flicker effect on the chart container
-        if (chartRef.current) {
-            chartRef.current.style.filter = "contrast(1.2) brightness(1.1)";
-        }
 
         return () => {
             u.destroy();
@@ -68,10 +68,5 @@ export function Chart({ data, width, height, color = '#33ff00', label }: ChartPr
         }
     }, [data]);
 
-    return (
-        <div className="relative">
-            {label && <div className="absolute top-2 left-2 text-primary text-xs uppercase z-10 bg-black/50 px-1 border border-primary">{label}</div>}
-            <div ref={chartRef} className="opacity-90 mix-blend-screen" />
-        </div>
-    );
+    return <div ref={containerRef} className="w-full h-full flex items-center justify-center"><div ref={chartRef} /></div>;
 }

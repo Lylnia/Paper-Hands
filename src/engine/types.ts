@@ -1,223 +1,125 @@
 // src/engine/types.ts
 
 // --- Configuration ---
-
 export interface ConfigParams {
-    tickSecondsReal: number; // 0.1s to 1s
-    priceK: number;
-    noiseSigma: number;
-    volatilityWindow: number;
+    tickSecondsReal: number;
 
-    liquidityImpactK: number;
-    slippageK: number;
+    // Market Physics
+    priceSensitivity: number; // K factor
+    volatilityBase: number;
 
-    trustDecayRates: {
-        ct: { vp: number; newsNeg: number; teamSell: number; delist: number };
-        it: { vp: number; risk: number; detection: number; regulator: number };
-    };
-    trustRecoveryRates: {
-        ct: { stability: number; transparency: number; revenue: number };
-        it: { stability: number; locked: number; cleanVolume: number };
+    // Risk Thresholds
+    risk: {
+        warning: number; // 50
+        danger: number; // 75
+        critical: number; // 90
+        decayRate: number;
     };
 
-    riskBaseRates: {
-        wash: number;
-        teamSell: number;
-        supply: number;
-        volatility: number;
-        bear: number;
-        decay: number;
-    };
-    riskMemoryDecay: number;
-
-    detectionParams: {
-        baseSensitivity: number;
-        tierMultiplier: number;
+    // Trust Dynamics
+    trust: {
+        decayOnSell: number;
+        decayOnFakeVol: number;
+        decayOnBear: number;
+        recoverRate: number;
     };
 
-    exchangeTiers: {
-        small: ExchangeTierConfig;
-        mid: ExchangeTierConfig;
-        major: ExchangeTierConfig;
+    // Regulation
+    regulation: {
+        detectionChanceBase: number; // 0.05
+        fineAmount: number;
     };
-
-    rankingWeights: {
-        mc: number;
-        trust: number;
-        liquidity: number;
-        volatility: number;
-        fakePenalty: number;
-        riskPenalty: number;
-    };
-
-    crisisThresholds: {
-        liquidityDeath: number;
-        trustCollapse: number;
-        riskExplosion: number;
-    };
-
-    winConditionTicks: number; // How many ticks at #1 to win
-}
-
-export interface ExchangeTierConfig {
-    listingReqIT: number;
-    listingReqL: number;
-    volumeMultiplier: number;
-    visMultiplier: number;
-    delistThresholdIT: number;
 }
 
 // --- State ---
 
 export type ScenarioType = 'new_chain' | 'existing_token' | 'dead_project';
-
-// Revenue Streams
-export interface RevenueStreamState {
-    unlocked: boolean;
-    level: number;
-    efficiency: number; // 0..1
-    autoCollect: boolean;
-}
-
-export interface ExchangeListingState {
-    id: string;
-    name: string;
-    tier: 'dex' | 'small' | 'mid' | 'major';
-    status: 'unlisted' | 'listed' | 'delisted' | 'blacklisted';
-    warningPoints: number; // 0..100
-    delistTimer: number; // Ticks remaining
-}
-
-export interface RollingMetrics {
-    returns: number[]; // History of % returns
-    volatility: number;
-    volumeStability: number;
-    fakeShare: number; // 0..1
-    rankMomentum: number;
-}
-
-export interface CompetitorState {
-    id: string;
-    name: string;
-    archetype: 'aggressive' | 'steady' | 'scammer' | 'institutional';
-    budget: number;
-    riskAppetite: number;
-    strategyWeights: {
-        fud: number;
-        pump: number;
-        utility: number;
-    };
-    memory: {
-        lastActionTick: number;
-        successRate: number;
-    };
-    // Simplified state for competitors (they don't run full physics, just effects)
-    mc: number;
-    trust: number;
-    rank: number;
-}
+export type MarketRegime = 'bull' | 'bear' | 'crab';
 
 export interface ProjectState {
     // Identity
     id: string;
     name: string;
-    scenarioType: ScenarioType;
+    ticker: string;
+    scenario: ScenarioType;
     tick: number;
 
-    // Tokenomics
-    s_max: number;
-    s_circ: number;
-    teamAlloc: number;
-    teamTokensRemaining: number;
-
-    // Market
-    priceP: number;
-    marketCapMC: number;
-    volumeV: number;
-    liquidityL: number;
-    liquidityLockedPct: number; // 0..1
-
-    // Metrics
-    communityTrustCT: number; // 0..100
-    institutionalTrustIT: number; // 0..100
-    riskR: number; // 0..100
-    visibilityVIS: number; // 0..100 (derived often, but good to cache)
+    // The 7 Core Metrics
+    marketCap: number;      // Derived: Price * CircSupply
+    price: number;          // Primary variable
+    volume: {
+        real: number;
+        fake: number;
+        total: number;        // real + fake
+        history: number[];    // For charts
+    };
+    liquidity: {
+        amount: number;       // USD value in LP
+        locked: boolean;
+        lockDuration: number; // ticks remaining
+    };
+    communityTrust: number; // 0-100 (CT)
+    institutionalTrust: number; // 0-100 (IT)
+    risk: number;           // 0-100 (R) - The "Heat" Meter
 
     // Resources
-    treasuryUSD: number;
-
-    // Systems
-    revenue: {
-        dex: RevenueStreamState;
-        cex: RevenueStreamState;
-        staking: RevenueStreamState;
-        nft: RevenueStreamState;
-        presale: RevenueStreamState;
+    supply: {
+        max: number;
+        circulating: number;
+        team: number;         // Team allocation
     };
+    treasury: number;       // USD
 
-    exchanges: Record<string, ExchangeListingState>;
-
-    rolling: RollingMetrics;
-
-    cooldowns: Record<string, number>;
-
-    // Flags
+    // Status flags
     flags: {
+        isDelisted: boolean;
+        isSECInvestigated: boolean;
         isRugged: boolean;
-        isDelistedEverywhere: boolean;
-        hasWon: boolean;
-        ticksAtNo1: number;
     };
 
-    // State Machine logic (Risk/Regulation)
-    regulationStage: 'normal' | 'watchlist' | 'investigation' | 'charges' | 'settlement';
-    regulationTimer: number;
-
-    riskMemory: number; // Accumulates over time with bad actions
+    // Cooldowns
+    cooldowns: Record<string, number>;
 }
 
 export interface MarketState {
-    msi: number; // -1 (bear) to 1 (bull)
-    regime: 'bull' | 'bear' | 'neutral' | 'crab';
-    regimeTimer: number;
-    globalLiquidityFactor: number; // Multiplier
-    leadingIndicators: {
-        newsSentiment: number;
-        btcTrend: number;
-    };
-    competitors: CompetitorState[];
+    regime: MarketRegime;
+    regimeDuration: number; // How long in this regime
+    globalMarketSentiment: number; // 0-100 (affects all crypto)
+    competitors: Competitor[];
+}
+
+export interface Competitor {
+    id: string;
+    name: string;
+    rank: number;
+    marketCap: number;
+    priceChange24h: number;
 }
 
 export interface GameState {
     project: ProjectState;
     market: MarketState;
-    log: EventLogEntry[];
     config: ConfigParams;
-    rngState: number; // Current generic seed/state for specialized RNG
+    log: LogEntry[];
+    rngState: number; // Seed
 }
 
-// --- Events ---
-
-export interface EventLogEntry {
+export interface LogEntry {
     id: string;
     tick: number;
-    type: 'info' | 'warning' | 'crisis' | 'success' | 'news';
-    title: string;
-    detail: string;
-    deltas?: Partial<ProjectState>; // Optional changes to show in UI
+    type: 'info' | 'success' | 'warning' | 'danger';
+    message: string;
 }
 
 // --- Actions ---
 
 export type ActionType =
     | 'buy_marketing'
-    | 'wash_trade'
-    | 'team_sell'
-    | 'stake_tokens'
-    | 'launch_nft'
-    | 'upgrade_tech'
-    | 'bribe_regulator'
-    | 'apply_listing';
+    | 'buy_fake_volume'
+    | 'sell_team_tokens'
+    | 'add_liquidity'
+    | 'remove_liquidity'
+    | 'launch_fud';
 
 export interface GameAction {
     type: ActionType;

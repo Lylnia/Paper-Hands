@@ -1,7 +1,6 @@
 // src/store.ts
 import { create } from 'zustand';
-import { GameState, GameAction } from './engine/types';
-import { createScenario } from './data/scenarios';
+import { GameState, GameAction, ScenarioType } from './engine/types';
 
 // Worker Wrapper
 class SimWorker {
@@ -18,8 +17,8 @@ class SimWorker {
         };
     }
 
-    init(state?: GameState) {
-        this.worker.postMessage({ type: 'INIT', payload: { state } });
+    init(scenario: ScenarioType) {
+        this.worker.postMessage({ type: 'INIT', payload: { scenario } });
     }
 
     start() {
@@ -33,23 +32,17 @@ class SimWorker {
     sendAction(action: GameAction) {
         this.worker.postMessage({ type: 'ACTION', payload: action });
     }
-
-    terminate() {
-        this.worker.terminate();
-    }
 }
 
 interface AppStore {
     gameState: GameState | null;
     isRunning: boolean;
 
-    // Actions
-    initGame: (scenario?: 'new_chain' | 'existing_token' | 'dead_project') => void;
+    initGame: (scenario: ScenarioType) => void;
     startGame: () => void;
     stopGame: () => void;
     dispatchAction: (action: GameAction) => void;
 
-    // Worker Reference
     simWorker: SimWorker | null;
 }
 
@@ -58,8 +51,7 @@ export const useStore = create<AppStore>((set, get) => ({
     isRunning: false,
     simWorker: null,
 
-    initGame: (scenarioType = 'new_chain') => {
-        // Only init if not already
+    initGame: (scenario) => {
         let worker = get().simWorker;
         if (!worker) {
             worker = new SimWorker((newState) => {
@@ -67,11 +59,7 @@ export const useStore = create<AppStore>((set, get) => ({
             });
             set({ simWorker: worker });
         }
-
-        // Create Initial State
-        const initialState = createScenario(scenarioType, Date.now()); // Date.now() is fine for seed here
-
-        worker!.init(initialState);
+        worker!.init(scenario);
     },
 
     startGame: () => {
