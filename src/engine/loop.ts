@@ -9,7 +9,7 @@ export function step(state: GameState, actions: GameAction[]): GameState {
     const log: LogEntry[] = [...state.log];
 
     // 1. Process Actions
-    let actionVolume = 0;
+
 
     actions.forEach(action => {
         switch (action.type) {
@@ -55,7 +55,7 @@ export function step(state: GameState, actions: GameAction[]): GameState {
     project.volume.history = [...project.volume.history, project.volume.total].slice(-50);
 
     // 3. Trust & Risk
-    const trustUpdates = updateTrust(project, market, priceChangePct, config);
+    const trustUpdates = updateTrust(project, priceChangePct, config);
     project.communityTrust = trustUpdates.ct;
     project.institutionalTrust = trustUpdates.it;
 

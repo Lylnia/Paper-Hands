@@ -79,7 +79,6 @@ export function updateRisk(
  */
 export function updateTrust(
     project: ProjectState,
-    market: MarketState,
     priceChangePct: number,
     config: ConfigParams
 ): { ct: number; it: number } {

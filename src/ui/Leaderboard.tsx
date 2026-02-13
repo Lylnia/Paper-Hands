@@ -11,8 +11,8 @@ export function Leaderboard({ state }: LeaderboardProps) {
 
     // Mix player into competitors for ranking display
     const allProjects = [
-        { id: project.id, name: project.name, mc: project.marketCapMC, trust: (project.communityTrustCT + project.institutionalTrustIT) / 2, isPlayer: true },
-        ...competitors.map(c => ({ id: c.id, name: c.name, mc: c.mc, trust: c.trust, isPlayer: false }))
+        { id: project.id, name: project.name, mc: project.marketCap, trust: (project.communityTrust + project.institutionalTrust) / 2, isPlayer: true },
+        ...competitors.map(c => ({ id: c.id, name: c.name, mc: c.marketCap, trust: 50, isPlayer: false }))
     ].sort((a, b) => b.mc - a.mc);
 
     return (
@@ -23,8 +23,8 @@ export function Leaderboard({ state }: LeaderboardProps) {
                     <div
                         key={p.id}
                         className={`flex justify-between items-center p-2 border-2 ${p.isPlayer
-                                ? 'bg-primary/10 border-primary shadow-[0_0_10px_rgba(51,255,0,0.3)]'
-                                : 'bg-black border-[#333]'
+                            ? 'bg-primary/10 border-primary shadow-[0_0_10px_rgba(51,255,0,0.3)]'
+                            : 'bg-black border-[#333]'
                             }`}
                     >
                         <div className="flex items-center gap-3">

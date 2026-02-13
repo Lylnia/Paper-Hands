@@ -1,6 +1,6 @@
 // src/ui/Log.tsx
 import { GameState } from '../engine/types';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
 export function Log({ state }: { state: GameState }) {
     const scrollRef = useRef<HTMLDivElement>(null);

@@ -1,15 +1,13 @@
 // src/App.tsx
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useStore } from './store';
 import { Dashboard } from './ui/Dashboard';
 import { ScenarioType } from './engine/types';
 
 function App() {
-    const { initGame, startGame, isRunning, gameState } = useStore();
-    const [selectedScenario, setSelectedScenario] = useState<ScenarioType | null>(null);
+    const { initGame, startGame, gameState } = useStore();
 
     const handleStart = (scenario: ScenarioType) => {
-        setSelectedScenario(scenario);
         initGame(scenario);
         // Wait a bit for worker to init then start
         setTimeout(() => startGame(), 100);

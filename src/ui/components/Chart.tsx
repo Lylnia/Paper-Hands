@@ -42,8 +42,7 @@ export function Chart({ state }: { state: GameState }) {
                 { grid: { show: false }, ticks: { show: false } },
                 {
                     grid: { stroke: '#333', width: 1, dash: [4, 4] },
-                    ticks: { show: false },
-                    points: { show: false }
+                    ticks: { show: false }
                 }
             ],
             cursor: {
