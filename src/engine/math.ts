@@ -22,9 +22,7 @@ export function calculateEffectiveLiquidity(
 // NetFlow = organicBuys + speculativeInflow - organicSells - teamSells - panicSells
 export function calculateNetFlow(
     project: ProjectState,
-    market: MarketState,
-    rng: RNG,
-    config: ConfigParams
+    market: MarketState
 ): { netFlow: number; organicVolume: number; buyPressure: number } {
 
     // V_org = f(CT, IT, MSI, rankMomentum, volatility, recentReturns)
@@ -103,8 +101,7 @@ export function updatePrice(
 // VP = v1*abs(MSI) + v2*(1/sqrt(max(L_eff,eps))) + v3*(R_scaled/100) + v4*stdev(returnsWindow)
 export function calculateVolatilityPressure(
     project: ProjectState,
-    market: MarketState,
-    config: ConfigParams
+    market: MarketState
 ): number {
     const r_scaled = calculateScaledRisk(project.riskR, project.marketCapMC, project.visibilityVIS);
     const l_eff = calculateEffectiveLiquidity(project.liquidityL, project.institutionalTrustIT, project.liquidityLockedPct, 1);
@@ -142,8 +139,6 @@ export function calculateScaledRisk(risk: number, mc: number, vis: number): numb
 export function updateRollingMetrics(
     current: RollingMetrics,
     newReturn: number,
-    newVolume: number,
-    ticks: number,
     config: ConfigParams
 ): RollingMetrics {
     // Simple exponential moving average for volatility

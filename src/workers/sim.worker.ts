@@ -1,6 +1,6 @@
 // src/workers/sim.worker.ts
 import { step } from '../engine/loop';
-import { GameAction, GameState, ConfigParams, ProjectState, MarketState } from '../engine/types';
+import { GameAction, GameState } from '../engine/types';
 
 const CTX: Worker = self as any;
 

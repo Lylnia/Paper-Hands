@@ -1,5 +1,5 @@
 // src/data/scenarios.ts
-import { GameState, ProjectState, MarketState, ConfigParams } from '../engine/types';
+import { GameState, ProjectState, ConfigParams } from '../engine/types';
 
 // Default Config
 export const DEFAULT_CONFIG: ConfigParams = {

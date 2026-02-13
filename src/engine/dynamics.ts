@@ -1,6 +1,6 @@
 // src/engine/dynamics.ts
 import { ConfigParams, ProjectState, MarketState } from './types';
-import { calculateVolatilityPressure, calculateScaledRisk } from './math';
+import { calculateScaledRisk } from './math';
 
 export function updateTrust(
     project: ProjectState,

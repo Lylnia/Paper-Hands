@@ -1,7 +1,7 @@
 // src/engine/loop.ts
-import { ActionType, ConfigParams, GameAction, GameState, ProjectState, MarketState } from './types';
+import { GameAction, GameState } from './types';
 import { RNG } from './rng';
-import { calculateNetFlow, updatePrice, calculateEffectiveLiquidity, calculateVolatilityPressure, updateRollingMetrics, calculateScaledRisk } from './math';
+import { calculateNetFlow, updatePrice, calculateEffectiveLiquidity, calculateVolatilityPressure, updateRollingMetrics } from './math';
 import { updateTrust, updateRisk } from './dynamics';
 
 export function step(
@@ -17,7 +17,6 @@ export function step(
 
     // 1. Process Actions
     let actionNetFlow = 0;
-    let actionCost = 0;
     let riskJump = 0;
 
     for (const action of actions) {
@@ -62,7 +61,7 @@ export function step(
     // 2. Core Physics
     const l_eff = calculateEffectiveLiquidity(nextProject.liquidityL, nextProject.institutionalTrustIT, nextProject.liquidityLockedPct, 1.0);
 
-    const { netFlow: organicNetFlow, organicVolume } = calculateNetFlow(nextProject, nextMarket, rng, state.config);
+    const { netFlow: organicNetFlow, organicVolume } = calculateNetFlow(nextProject, nextMarket);
 
     const totalNetFlow = organicNetFlow + actionNetFlow;
 
@@ -77,8 +76,8 @@ export function step(
 
     // 3. Dynamics
     const returnPct = (newPrice - previousPrice) / previousPrice;
-    nextProject.rolling = updateRollingMetrics(nextProject.rolling, returnPct, nextProject.volumeV, nextProject.tick, state.config);
-    const vp = calculateVolatilityPressure(nextProject, nextMarket, state.config);
+    nextProject.rolling = updateRollingMetrics(nextProject.rolling, returnPct, state.config);
+    const vp = calculateVolatilityPressure(nextProject, nextMarket);
 
     // Trust
     const { ct, it } = updateTrust(nextProject, nextMarket, vp, state.config);
